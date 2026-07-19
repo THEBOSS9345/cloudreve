@@ -44,10 +44,29 @@ GitHub account (`THEBOSS9345`) instead:
 
 ### Known outstanding items
 
-- Not yet verified working against the *actual* home server deployment (only
-  verified locally via `scripts/smoke-test.sh` and a local `docker run`
-  sanity check of the production image). Confirm with the user once they've
-  deployed and enabled HLS in the admin panel.
+- Deployed to the home server (`root@100.68.206.122` via Tailscale SSH,
+  container name `cloudreve`, bind-mounted `/root/cloudreve/data`). Two
+  stopped backup containers are preserved there in case of rollback:
+  `cloudreve-official-backup` (original `cloudreve/cloudreve:latest`) and
+  `cloudreve-hls-v1-backup` (first custom build, before the defaults fix
+  below). Rollback: `docker stop cloudreve && docker rm cloudreve && docker
+  rename cloudreve-official-backup cloudreve && docker start cloudreve`.
+- **Fixed 2026-07-19**: `hls_*` settings were missing from
+  `inventory.DefaultSettings`, so the admin Settings UI showed blank values
+  instead of defaults on install/upgrade (the feature worked functionally
+  regardless, since `pkg/setting/provider.go`'s individual getters carry
+  their own hardcoded fallback — this only affected the admin-UI-visible
+  default). Fixed in commit `fix(hls): register hls_* settings with defaults
+  in inventory.DefaultSettings`, rebuilt, and redeployed.
+- User also reported the admin HLS section showing raw i18n keys
+  (`settings.hls`, `settings.hlsDes`) instead of translated labels. The
+  translation keys and `useTranslation("dashboard")` namespace in
+  `Media.tsx` were verified correct in source — likely a **stale PWA service
+  worker cache** in the browser (Cloudreve uses `vite-plugin-pwa`), since the
+  backend image was swapped in place at the same URL. Ask the user to hard
+  refresh / clear the service worker (DevTools → Application → Service
+  Workers → Unregister, and Clear storage) and confirm whether that resolves
+  it before assuming it's a source bug.
 - HLS master playlist can advertise a `RESOLUTION`/`BANDWIDTH` higher than
   the real encoded output for ladder rungs taller than the source (see
   `HLS_FEATURE_NOTES.md` Part 3, "Known limitations").
