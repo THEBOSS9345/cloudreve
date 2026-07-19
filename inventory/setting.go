@@ -641,6 +641,17 @@ var DefaultSettings = map[string]string{
 	"media_meta_ffprobe_size_remote":             "0",
 	"media_meta_geocoding":                       "0",
 	"media_meta_geocoding_mapbox_ak":             "",
+	"hls_enabled":                                "0",
+	"hls_exts":                                   "mp4,mkv,mov,avi,flv,webm,wmv,m4v,ts,m2ts,mpg,mpeg,3gp",
+	"hls_min_size":                               "52428800", // 50 MB
+	"hls_audio_exts":                             "mp3,m4a,aac,flac,wav,ogg,opus,wma",
+	"hls_audio_min_size":                         "5242880", // 5 MB
+	"hls_audio_bitrates":                         "320k,192k,128k,64k",
+	"hls_resolutions":                            "1080:5000k:160k,720:2800k:128k,480:1400k:128k,360:800k:96k",
+	"hls_segment_duration":                       "6",
+	"hls_extra_args":                             "",
+	"hls_cache_ttl":                              "72",
+	"hls_max_concurrent_jobs":                    "1",
 	"site_logo":                                  "/static/img/logo.svg",
 	"site_logo_light":                            "/static/img/logo_light.svg",
 	"tos_url":                                    "https://cloudreve.org/privacy-policy",
