@@ -156,6 +156,29 @@ func Thumb(c *gin.Context) {
 	c.JSON(200, serializer.Response{Data: res})
 }
 
+// HLSUrl resolves HLS availability and returns a signed master playlist URL for a video file.
+func HLSUrl(c *gin.Context) {
+	service := ParametersFromContext[*explorer.FileHLSService](c, explorer.FileHLSParameterCtx{})
+	res, err := service.Get(c)
+	if err != nil {
+		c.JSON(200, serializer.Err(c, err))
+		c.Abort()
+		return
+	}
+
+	c.JSON(200, serializer.Response{Data: res})
+}
+
+// ServeHLS serves HLS master/variant playlists and segments for an entity.
+func ServeHLS(c *gin.Context) {
+	service := ParametersFromContext[*explorer.HLSStreamService](c, explorer.HLSStreamParameterCtx{})
+	if err := service.Serve(c); err != nil {
+		c.JSON(200, serializer.Err(c, err))
+		c.Abort()
+		return
+	}
+}
+
 // FileURL get temporary file url for preview or download
 func FileURL(c *gin.Context) {
 	service := ParametersFromContext[*explorer.FileURLService](c, explorer.FileURLParameterCtx{})

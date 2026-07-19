@@ -664,6 +664,27 @@ func initMasterRouter(dep dependency.Dep) *gin.Engine {
 				controllers.FromQuery[explorer.FileThumbService](explorer.FileThumbParameterCtx{}),
 				controllers.Thumb,
 			)
+			// get hls master playlist url for a video file, if eligible
+			file.GET("hls",
+				middleware.ContextHint(),
+				controllers.FromQuery[explorer.FileHLSService](explorer.FileHLSParameterCtx{}),
+				controllers.HLSUrl,
+			)
+			// HLS master/variant playlists and segments. Authorized purely via the
+			// path-embedded signature (see explorer.HLSStreamService), not session
+			// auth, so it stays reachable from <video>/hls.js without cookies. Kept as
+			// its own literal "hls" branch (rather than nested under "content") to
+			// avoid any static/param route ambiguity with content/:id/:speed/:name.
+			hlsContent := file.Group("hls")
+			hlsContent.Use(middleware.ContentCORS())
+			{
+				hlsContent.OPTIONS("*option", middleware.ContentCORS())
+				hlsContent.GET(":id/:sign/*path",
+					middleware.HashID(hashid.EntityID),
+					controllers.FromUri[explorer.HLSStreamService](explorer.HLSStreamParameterCtx{}),
+					controllers.ServeHLS,
+				)
+			}
 			// Delete files
 			file.DELETE("",
 				middleware.RequiredScopes(types.ScopeFilesWrite),

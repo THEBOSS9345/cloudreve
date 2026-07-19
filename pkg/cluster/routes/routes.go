@@ -165,6 +165,18 @@ func MasterFileContentUrl(base *url.URL, entityId, name string, download, thumb 
 	return route
 }
 
+// MasterFileHLSUrl builds the URL of the HLS master playlist for an entity. The
+// signature is scoped to the entity (not the exact sub-path), so relative
+// playlist/segment references under the same URL prefix inherit it automatically.
+func MasterFileHLSUrl(base *url.URL, entityId, sign string) *url.URL {
+	route, _ := url.Parse(constants.APIPrefix + fmt.Sprintf("/file/hls/%s/%s/master.m3u8", entityId, url.PathEscape(sign)))
+	if base != nil {
+		route = base.ResolveReference(route)
+	}
+
+	return route
+}
+
 func MasterWopiSrc(base *url.URL, sessionId string) *url.URL {
 	route, _ := url.Parse(constants.APIPrefix + "/file/wopi/" + sessionId)
 	return base.ResolveReference(route)

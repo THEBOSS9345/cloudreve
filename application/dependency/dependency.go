@@ -23,6 +23,7 @@ import (
 	"github.com/cloudreve/Cloudreve/v4/pkg/filemanager/lock"
 	"github.com/cloudreve/Cloudreve/v4/pkg/hashid"
 	"github.com/cloudreve/Cloudreve/v4/pkg/logging"
+	"github.com/cloudreve/Cloudreve/v4/pkg/hls"
 	"github.com/cloudreve/Cloudreve/v4/pkg/mediameta"
 	"github.com/cloudreve/Cloudreve/v4/pkg/queue"
 	"github.com/cloudreve/Cloudreve/v4/pkg/request"
@@ -146,6 +147,8 @@ type Dep interface {
 	SearchIndexer(ctx context.Context) searcher.SearchIndexer
 	// TextExtractor Get a singleton searcher.TextExtractor instance for text extraction.
 	TextExtractor(ctx context.Context) searcher.TextExtractor
+	// HLSManager Get a singleton hls.Manager instance for on-the-fly HLS transcoding.
+	HLSManager(ctx context.Context) *hls.Manager
 }
 
 type dependency struct {
@@ -186,6 +189,7 @@ type dependency struct {
 	mediaMeta             mediameta.Extractor
 	thumbPipeline         thumb.Generator
 	mimeDetector          mime.MimeDetector
+	hlsManager            *hls.Manager
 	credManager           credmanager.CredManager
 	nodePool              cluster.NodePool
 	taskRegistry          queue.TaskRegistry
@@ -571,6 +575,19 @@ func (d *dependency) MimeDetector(ctx context.Context) mime.MimeDetector {
 
 	d.mimeDetector = mime.NewMimeDetector(ctx, d.SettingProvider(), d.Logger())
 	return d.mimeDetector
+}
+
+func (d *dependency) HLSManager(ctx context.Context) *hls.Manager {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+
+	_, reload := ctx.Value(ReloadCtx{}).(bool)
+	if d.hlsManager != nil && !reload {
+		return d.hlsManager
+	}
+
+	d.hlsManager = hls.NewManager(d.Logger(), d.SettingProvider())
+	return d.hlsManager
 }
 
 func (d *dependency) MediaMetaExtractor(ctx context.Context) mediameta.Extractor {

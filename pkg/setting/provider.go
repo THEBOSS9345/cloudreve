@@ -239,6 +239,28 @@ type (
 		// ExposeUserEmail returns true if user email should be exposed to other
 		// signed-in users in redacted responses.
 		ExposeUserEmail(ctx context.Context) bool
+		// HLSEnabled returns true if on-the-fly HLS transcoding is enabled.
+		HLSEnabled(ctx context.Context) bool
+		// HLSExts returns the video file extensions eligible for HLS transcoding.
+		HLSExts(ctx context.Context) []string
+		// HLSMinSize returns the minimum file size eligible for HLS transcoding of videos.
+		HLSMinSize(ctx context.Context) int64
+		// HLSAudioExts returns the audio file extensions eligible for HLS transcoding.
+		HLSAudioExts(ctx context.Context) []string
+		// HLSAudioMinSize returns the minimum file size eligible for HLS transcoding of audio files.
+		HLSAudioMinSize(ctx context.Context) int64
+		// HLSAudioBitrates returns the raw audio-only quality ladder spec used for HLS transcoding.
+		HLSAudioBitrates(ctx context.Context) string
+		// HLSResolutions returns the raw quality ladder spec used for HLS transcoding.
+		HLSResolutions(ctx context.Context) string
+		// HLSSegmentDuration returns the target duration in seconds of each HLS segment.
+		HLSSegmentDuration(ctx context.Context) int
+		// HLSExtraArgs returns the extra ffmpeg arguments used for HLS transcoding.
+		HLSExtraArgs(ctx context.Context) string
+		// HLSCacheTTL returns the number of hours an idle HLS cache is kept before eviction.
+		HLSCacheTTL(ctx context.Context) int
+		// HLSMaxConcurrentJobs returns the maximum number of files being transcoded to HLS at once.
+		HLSMaxConcurrentJobs(ctx context.Context) int
 	}
 	UseFirstSiteUrlCtxKey = struct{}
 )
@@ -481,6 +503,54 @@ func (s *settingProvider) FFMpegExtraArgs(ctx context.Context) string {
 
 func (s *settingProvider) FFMpegThumbMaxSize(ctx context.Context) int64 {
 	return s.getInt64(ctx, "thumb_ffmpeg_max_size", 10737418240)
+}
+
+func (s *settingProvider) HLSEnabled(ctx context.Context) bool {
+	return s.getBoolean(ctx, "hls_enabled", false)
+}
+
+func (s *settingProvider) HLSExts(ctx context.Context) []string {
+	return s.getStringList(ctx, "hls_exts", []string{
+		"mp4", "mkv", "mov", "avi", "flv", "webm", "wmv", "m4v", "ts", "m2ts", "mpg", "mpeg", "3gp",
+	})
+}
+
+func (s *settingProvider) HLSMinSize(ctx context.Context) int64 {
+	return s.getInt64(ctx, "hls_min_size", 52428800)
+}
+
+func (s *settingProvider) HLSAudioExts(ctx context.Context) []string {
+	return s.getStringList(ctx, "hls_audio_exts", []string{
+		"mp3", "m4a", "aac", "flac", "wav", "ogg", "opus", "wma",
+	})
+}
+
+func (s *settingProvider) HLSAudioMinSize(ctx context.Context) int64 {
+	return s.getInt64(ctx, "hls_audio_min_size", 5242880)
+}
+
+func (s *settingProvider) HLSAudioBitrates(ctx context.Context) string {
+	return s.getString(ctx, "hls_audio_bitrates", "320k,192k,128k,64k")
+}
+
+func (s *settingProvider) HLSResolutions(ctx context.Context) string {
+	return s.getString(ctx, "hls_resolutions", "1080:5000k:160k,720:2800k:128k,480:1400k:128k,360:800k:96k")
+}
+
+func (s *settingProvider) HLSSegmentDuration(ctx context.Context) int {
+	return s.getInt(ctx, "hls_segment_duration", 6)
+}
+
+func (s *settingProvider) HLSExtraArgs(ctx context.Context) string {
+	return s.getString(ctx, "hls_extra_args", "")
+}
+
+func (s *settingProvider) HLSCacheTTL(ctx context.Context) int {
+	return s.getInt(ctx, "hls_cache_ttl", 72)
+}
+
+func (s *settingProvider) HLSMaxConcurrentJobs(ctx context.Context) int {
+	return s.getInt(ctx, "hls_max_concurrent_jobs", 1)
 }
 
 func (s *settingProvider) VipsThumbGeneratorEnabled(ctx context.Context) bool {
