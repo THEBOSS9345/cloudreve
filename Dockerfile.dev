@@ -1,0 +1,62 @@
+# Dockerfile.dev - builds Cloudreve from local source (including any uncommitted
+# changes) for local testing. Only Docker is required on the host; Go and Node
+# toolchains are pulled in as build-stage images and never touch your machine.
+#
+# Build:  docker compose -f docker-compose.dev.yml up --build
+# Then open http://localhost:5212
+
+# --- Frontend build ---
+FROM node:20-alpine AS frontend
+RUN apk add --no-cache git \
+    && git config --system url."https://github.com/".insteadOf "ssh://git@github.com/" \
+    && git config --system --get-regexp url\..* || true
+WORKDIR /src/assets
+ENV NODE_OPTIONS=--max-old-space-size=8192
+COPY assets/package.json assets/yarn.lock ./
+RUN yarn install --network-timeout 1000000
+COPY assets/ ./
+RUN yarn build
+
+# --- Backend build ---
+FROM golang:1.25-alpine AS backend
+RUN apk add --no-cache git zip
+WORKDIR /src
+COPY go.mod go.sum ./
+RUN go mod download
+COPY . .
+COPY --from=frontend /src/assets/build ./assets/build
+RUN mkdir -p application/statics \
+    && zip -rq - assets/build > application/statics/assets.zip
+RUN CGO_ENABLED=0 go build -ldflags "-s -w" -o /out/cloudreve .
+
+# --- Runtime (mirrors the official Dockerfile, plus HLS enabled by default) ---
+FROM alpine:latest
+WORKDIR /cloudreve
+
+RUN apk update \
+    && apk add --no-cache tzdata vips-tools ffmpeg libreoffice aria2 supervisor font-noto font-noto-cjk libheif libraw-tools \
+    && cp /usr/share/zoneinfo/Asia/Shanghai /etc/localtime \
+    && echo "Asia/Shanghai" > /etc/timezone \
+    && mkdir -p ./data/temp/aria2 \
+    && chmod -R 766 ./data/temp/aria2
+
+ENV CR_ENABLE_ARIA2=1 \
+    CR_SETTING_thumb_ffmpeg_enabled=1 \
+    CR_SETTING_thumb_vips_enabled=1 \
+    CR_SETTING_thumb_libreoffice_enabled=1 \
+    CR_SETTING_media_meta_ffprobe=1 \
+    CR_SETTING_thumb_libraw_enabled=1 \
+    CR_SETTING_hls_enabled=1 \
+    CR_SETTING_hls_min_size=1048576 \
+    CR_SETTING_hls_audio_min_size=102400
+
+COPY .build/aria2.supervisor.conf .build/entrypoint.sh ./
+COPY --from=backend /out/cloudreve ./cloudreve
+
+RUN chmod +x ./cloudreve ./entrypoint.sh
+
+EXPOSE 5212 443 6888 6888/udp
+
+VOLUME ["/cloudreve/data"]
+
+ENTRYPOINT ["sh", "./entrypoint.sh"]

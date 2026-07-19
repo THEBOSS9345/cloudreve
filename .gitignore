@@ -38,3 +38,7 @@ tmp/
 .devcontainer/
 cloudreve
 .DS_Store
+
+# Local dev/test tooling
+scripts/.selftest/
+docker_build.log

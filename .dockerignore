@@ -1,0 +1,8 @@
+.git
+.idea
+.vscode
+data
+assets/node_modules
+assets/build
+application/statics/assets.zip
+*.log

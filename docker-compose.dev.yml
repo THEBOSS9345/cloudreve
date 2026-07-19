@@ -1,0 +1,26 @@
+# Local test environment for the HLS changes (or any other local changes).
+# Builds Cloudreve from source (see Dockerfile.dev) instead of pulling the
+# published image, and uses SQLite so no separate database container is needed.
+#
+# Usage:
+#   docker compose -f docker-compose.dev.yml up --build
+#   open http://localhost:5212, finish the setup wizard, then upload a video
+#   (e.g. an mp4 over 1MB - lowered from the normal 50MB default just for this
+#   test image) and play it. It should start as HLS (check the network tab for
+#   requests to /api/v4/file/hls/... and master.m3u8/*.ts files).
+#
+# Rebuild after further code changes with the same command (add --build).
+services:
+  cloudreve-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    container_name: cloudreve-dev
+    restart: unless-stopped
+    ports:
+      - "5212:5212"
+    volumes:
+      - cloudreve_dev_data:/cloudreve/data
+
+volumes:
+  cloudreve_dev_data:
