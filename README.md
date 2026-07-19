@@ -71,6 +71,15 @@ If you're interested in contributing to Cloudreve, please refer to [Contributing
 - [Go](https://golang.org/) + [Gin](https://github.com/gin-gonic/gin) + [ent](https://github.com/ent/ent)
 - [React](https://github.com/facebook/react) + [Redux](https://github.com/reduxjs/redux) + [Material-UI](https://github.com/mui-org/material-ui)
 
+## :package: This fork
+
+This fork adds on-the-fly adaptive-bitrate HLS streaming for video/audio
+playback. See [`docs/PROJECT_STATUS.md`](docs/PROJECT_STATUS.md) for current
+project state and [`docs/HLS_FEATURE_NOTES.md`](docs/HLS_FEATURE_NOTES.md)
+for the feature's design, API contract, and settings. Local dev/production
+Docker assets are under [`docker/`](docker/); reusable test scripts are under
+[`scripts/`](scripts/) (run `scripts/dev.sh up` then `scripts/smoke-test.sh`).
+
 ## :scroll: License
 
 GPL V3

@@ -1,8 +1,11 @@
-# Dockerfile.dev - builds Cloudreve from local source (including any uncommitted
-# changes) for local testing. Only Docker is required on the host; Go and Node
-# toolchains are pulled in as build-stage images and never touch your machine.
+# docker/Dockerfile.dev - builds Cloudreve from local source (including any
+# uncommitted changes) for local testing. Only Docker is required on the
+# host; Go and Node toolchains are pulled in as build-stage images and never
+# touch your machine.
 #
-# Build:  docker compose -f docker-compose.dev.yml up --build
+# Build (run from the repo root, not from inside docker/):
+#   docker compose -f docker/docker-compose.dev.yml up --build
+# Or just: scripts/dev.sh up
 # Then open http://localhost:5212
 
 # --- Frontend build ---

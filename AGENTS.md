@@ -1,5 +1,9 @@
 # Cloudreve v4 - Codebase Conventions
 
+> **Start here first:** [`docs/PROJECT_STATUS.md`](docs/PROJECT_STATUS.md) has
+> current project state, what's in progress, and where things left off.
+> Update it when a session ends with meaningful progress.
+
 ## General Rules
 - NEVER rewrite existing code unless explicitly asked
 - Match existing code style exactly - read nearby files before writing new code

@@ -2,19 +2,25 @@
 # Builds Cloudreve from source (see Dockerfile.dev) instead of pulling the
 # published image, and uses SQLite so no separate database container is needed.
 #
-# Usage:
-#   docker compose -f docker-compose.dev.yml up --build
+# Usage (run from the repo root, not from inside docker/):
+#   docker compose -f docker/docker-compose.dev.yml up --build
 #   open http://localhost:5212, finish the setup wizard, then upload a video
 #   (e.g. an mp4 over 1MB - lowered from the normal 50MB default just for this
 #   test image) and play it. It should start as HLS (check the network tab for
 #   requests to /api/v4/file/hls/... and master.m3u8/*.ts files).
 #
 # Rebuild after further code changes with the same command (add --build).
+# Prefer scripts/dev.sh for day-to-day use - it wraps this file.
+#
+# `name:` is pinned below so moving this file doesn't change the Compose
+# project name (which defaults to the containing directory's name, "docker")
+# and orphan the volume/network from before this file lived under docker/.
+name: cloudreve
 services:
   cloudreve-dev:
     build:
-      context: .
-      dockerfile: Dockerfile.dev
+      context: ..
+      dockerfile: docker/Dockerfile.dev
     container_name: cloudreve-dev
     restart: unless-stopped
     ports:

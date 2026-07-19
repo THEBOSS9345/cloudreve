@@ -1,0 +1,77 @@
+# docker/Dockerfile.prod - production image built from local source,
+# including the custom on-the-fly HLS feature (see docs/HLS_FEATURE_NOTES.md).
+# Same runtime layout as the upstream official Dockerfile/image, but built
+# from this source tree instead of a prebuilt release binary, so
+# uncommitted/forked changes are included.
+#
+# Build (run from the repo root, not from inside docker/):
+#   docker build -f docker/Dockerfile.prod -t ghcr.io/<you>/cloudreve-hls:latest .
+# Push:
+#   docker push ghcr.io/<you>/cloudreve-hls:latest
+#
+# Drop-in replacement for cloudreve/cloudreve:latest - same port layout, same
+# /cloudreve/data volume, same config precedence. HLS ships OFF by default
+# (matching upstream's conservative default); enable it after deploying via
+# Settings > Media in the admin panel, or force it at container start with
+# `-e CR_SETTING_hls_enabled=1` (see docs/HLS_FEATURE_NOTES.md Part 2 for the
+# full settings list and their CR_SETTING_<key> env var names).
+
+# --- Frontend build ---
+FROM node:20-alpine AS frontend
+RUN apk add --no-cache git \
+    && git config --system url."https://github.com/".insteadOf "ssh://git@github.com/" \
+    && git config --system --get-regexp url\..* || true
+WORKDIR /src/assets
+ENV NODE_OPTIONS=--max-old-space-size=8192
+# package.json's checked-in version ("4.0.0-next") is a placeholder normally
+# bumped by the release pipeline; stamp it to match the backend's
+# constants.BackendVersion so application/statics/statics.go's version check
+# doesn't log a (harmless but noisy) mismatch error on every boot.
+ARG APP_VERSION=4.14.0
+COPY assets/package.json assets/yarn.lock ./
+RUN npm pkg set version="$APP_VERSION" \
+    && yarn install --network-timeout 1000000
+COPY assets/ ./
+RUN npm pkg set version="$APP_VERSION" \
+    && yarn build
+
+# --- Backend build ---
+FROM golang:1.25-alpine AS backend
+RUN apk add --no-cache git zip
+WORKDIR /src
+COPY go.mod go.sum ./
+RUN go mod download
+COPY . .
+COPY --from=frontend /src/assets/build ./assets/build
+RUN mkdir -p application/statics \
+    && zip -rq - assets/build > application/statics/assets.zip
+RUN CGO_ENABLED=0 go build -ldflags "-s -w" -o /out/cloudreve .
+
+# --- Runtime (mirrors the official Dockerfile) ---
+FROM alpine:latest
+WORKDIR /cloudreve
+
+RUN apk update \
+    && apk add --no-cache tzdata vips-tools ffmpeg libreoffice aria2 supervisor font-noto font-noto-cjk libheif libraw-tools \
+    && cp /usr/share/zoneinfo/Asia/Shanghai /etc/localtime \
+    && echo "Asia/Shanghai" > /etc/timezone \
+    && mkdir -p ./data/temp/aria2 \
+    && chmod -R 766 ./data/temp/aria2
+
+ENV CR_ENABLE_ARIA2=1 \
+    CR_SETTING_thumb_ffmpeg_enabled=1 \
+    CR_SETTING_thumb_vips_enabled=1 \
+    CR_SETTING_thumb_libreoffice_enabled=1 \
+    CR_SETTING_media_meta_ffprobe=1 \
+    CR_SETTING_thumb_libraw_enabled=1
+
+COPY .build/aria2.supervisor.conf .build/entrypoint.sh ./
+COPY --from=backend /out/cloudreve ./cloudreve
+
+RUN chmod +x ./cloudreve ./entrypoint.sh
+
+EXPOSE 5212 443 6888 6888/udp
+
+VOLUME ["/cloudreve/data"]
+
+ENTRYPOINT ["sh", "./entrypoint.sh"]

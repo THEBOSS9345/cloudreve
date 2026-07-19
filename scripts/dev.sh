@@ -25,7 +25,7 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
-COMPOSE_FILE="${COMPOSE_FILE:-$ROOT_DIR/docker-compose.dev.yml}"
+COMPOSE_FILE="${COMPOSE_FILE:-$ROOT_DIR/docker/docker-compose.dev.yml}"
 CONTAINER="${CONTAINER:-cloudreve-dev}"
 BASE_URL="${BASE_URL:-http://localhost:5212}"
 

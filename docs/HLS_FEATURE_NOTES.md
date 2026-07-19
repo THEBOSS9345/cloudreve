@@ -9,8 +9,8 @@ This file has two audiences:
 - **Part 1** is self-contained and meant to be handed as-is to another agent/dev
   implementing an HLS-capable client (e.g. the desktop app) — it assumes no
   access to this backend repo, only a running server to talk to.
-- **Parts 2–4** are backend implementation reference for continuing work on
-  this repo.
+- **Parts 2–5** are backend implementation reference for continuing work on
+  this repo, including how to build/deploy the production image.
 
 ---
 
@@ -222,10 +222,13 @@ files were not touched.
 
 ## Part 4: How to run and test this yourself
 
-No local Go/Node toolchain needed — everything builds inside Docker.
+No local Go/Node toolchain needed — everything builds inside Docker. All dev
+Docker assets live under `docker/` (`docker/Dockerfile.dev`,
+`docker/docker-compose.dev.yml`); the scripts below wrap them so you never
+need to reference those paths directly.
 
 ```
-scripts/dev.sh up            # build + start (docker-compose.dev.yml, SQLite, no separate DB container)
+scripts/dev.sh up            # build + start (docker/docker-compose.dev.yml, SQLite, no separate DB container)
 scripts/smoke-test.sh        # full fresh-deploy test: wipes data volume, rebuilds, runs
                               # health/auth/filesystem/upload-download/HLS checks end to end
 scripts/hls-selftest.sh full # HLS-only: synthesizes test audio+video via ffmpeg in-container,
@@ -236,3 +239,24 @@ See `scripts/lib/cloudreve-api.sh` for the reusable API helpers (login,
 upload, generic authenticated request) these scripts are built on — extend it
 rather than hand-rolling `curl` when adding new checks. Full usage docs are in
 each script's header comment.
+
+## Part 5: Production image / home server deployment
+
+`docker/Dockerfile.prod` builds a production image from this source (same
+runtime layout as the official `cloudreve/cloudreve` image — drop-in
+replacement, same `/cloudreve/data` volume, same ports). Unlike
+`Dockerfile.dev` it stamps the frontend's embedded version to match the
+backend's so there's no cosmetic version-mismatch log line on boot, and ships
+with HLS **off** by default (matching upstream's conservative default) —
+enable it post-deploy via Settings → Media in the admin panel, or force it
+with `-e CR_SETTING_hls_enabled=1`.
+
+```
+docker build -f docker/Dockerfile.prod -t <your-registry>/cloudreve-hls:latest .
+docker push <your-registry>/cloudreve-hls:latest
+```
+
+Current build lives at `ghcr.io/theboss9345/cloudreve-hls:latest` (private —
+pulling elsewhere needs `docker login ghcr.io` with a token scoped
+`read:packages`). See `docs/PROJECT_STATUS.md` for deployment history and
+what's still outstanding.
